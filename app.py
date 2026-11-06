@@ -347,7 +347,7 @@ async def process_endpoint(
     file: Optional[UploadFile] = File(None),
     url: Optional[str] = Form(None)
 ):
-    api_key = request.headers.get("X-Gemini-Key")
+    api_key = request.headers.get("X-Gemini-Key") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=400, detail="Missing X-Gemini-Key header")
     
