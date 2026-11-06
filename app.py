@@ -177,6 +177,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Auth (SQLite signup/login) ---
+from auth import router as auth_router, current_user
+from fastapi.responses import JSONResponse, RedirectResponse
+app.include_router(auth_router)
+
+@app.middleware("http")
+async def require_login_for_api(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/") and path != "/api/me" and request.method != "OPTIONS":
+        if not current_user(request):
+            return JSONResponse({"detail": "Not authenticated. Log in at /login"}, status_code=401)
+    return await call_next(request)
+
+HOME_HTML = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GeradorShorts</title>
+<style>body{font-family:system-ui,sans-serif;background:#0f1115;color:#e8eaed;max-width:720px;margin:2rem auto;padding:0 1rem}input,button{padding:.7rem;border-radius:8px;border:1px solid #333;background:#181b22;color:inherit;font-size:1rem;width:100%;box-sizing:border-box;margin:.3rem 0}button{background:#6d5dfc;border:0;cursor:pointer}pre{background:#181b22;padding:1rem;border-radius:8px;white-space:pre-wrap;max-height:320px;overflow:auto}a{color:#9a8fff}</style></head><body>
+<h1>GeradorShorts</h1><p>Logado como <b id="u"></b> <form method="post" action="/logout" style="display:inline"><button style="width:auto;padding:.3rem .8rem">Sair</button></form></p>
+<input id="key" placeholder="Gemini API key" type="password"><input id="url" placeholder="URL do vídeo do YouTube"><button id="go">Gerar shorts</button><pre id="log">-</pre><div id="out"></div>
+<script>
+fetch('/api/me').then(r=>r.json()).then(j=>u.textContent=j.username);
+go.onclick=async()=>{log.textContent='enviando...';
+const r=await fetch('/api/shorts',{method:'POST',headers:{'Content-Type':'application/json','X-Gemini-Key':key.value},body:JSON.stringify({url:url.value})});
+const j=await r.json();if(!r.ok){log.textContent=JSON.stringify(j);return}
+const t=setInterval(async()=>{const s=await (await fetch('/api/status/'+j.job_id)).json();log.textContent=s.status+'\\n'+s.logs.slice(-15).join('\\n');
+if(s.status=='completed'||s.status=='failed'){clearInterval(t);if(s.result)out.innerHTML=JSON.stringify(s.result.clips?s.result.clips.map(c=>c.video_url||c):s.result)}},3000)}
+</script></body></html>"""
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    if not current_user(request):
+        return RedirectResponse("/login", status_code=303)
+    return HOME_HTML
+
 # Mount static files for serving videos
 app.mount("/videos", StaticFiles(directory=OUTPUT_DIR), name="videos")
 
@@ -308,6 +340,7 @@ async def run_job(job_id, job_data):
         jobs[job_id]['status'] = 'failed'
         jobs[job_id]['logs'].append(f"Execution error: {str(e)}")
 
+@app.post("/api/shorts")
 @app.post("/api/process")
 async def process_endpoint(
     request: Request,

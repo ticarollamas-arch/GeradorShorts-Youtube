@@ -14,6 +14,9 @@ COPY requirements.txt .
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade pip
+# CPU-only PyTorch first: avoids ~GBs of unused CUDA/NVIDIA wheels (no GPU on Railway).
+# requirements.txt then sees torch/torchvision as already satisfied.
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage
@@ -60,5 +63,5 @@ RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 # Expose FastAPI port
 EXPOSE 8000
 
-# Run FastAPI app
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI app (Railway injects PORT; defaults to 8000 locally)
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
