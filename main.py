@@ -503,7 +503,53 @@ def download_youtube_video(url, output_dir="."):
         raise
 
 
+def _download_via_vidkraken(url, output_dir, api_key):
+    """Download through the Vid Kraken API (POST /download, poll, stream CDN URL)."""
+    print("📥 Downloading video via Vid Kraken...", flush=True)
+    t0 = time.time()
+    base = "https://vidkraken.com/api/v2"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    with httpx.Client(timeout=30.0, headers=headers) as client:
+        r = client.post(f"{base}/download", json={"url": url, "format": _YOUTUBE_MP41_QUALITY if _YOUTUBE_MP41_QUALITY in ("360", "480", "720", "1080") else "1080"})
+        if r.status_code >= 400:
+            raise RuntimeError(f"Vid Kraken submit failed {r.status_code}: {r.text[:300]}")
+        data = r.json()
+        job_id = data.get("jobId")
+        if not job_id:
+            raise RuntimeError(f"Vid Kraken returned no jobId: {str(data)[:300]}")
+        title = data.get("title") or "youtube_video"
+        deadline = time.time() + _YOUTUBE_MP41_POLL_TIMEOUT
+        last = None
+        while True:
+            p = client.get(f"{base}/download/{job_id}")
+            p.raise_for_status()
+            pd = p.json()
+            status = pd.get("status", "?")
+            if status != last:
+                print(f"   → {status}", flush=True)
+                last = status
+            if status == "COMPLETED" and pd.get("downloadUrl"):
+                download_url = pd["downloadUrl"]
+                title = pd.get("title") or title
+                break
+            if status == "FAILED":
+                raise RuntimeError(f"Vid Kraken download failed: {pd.get('errorCode')} {str(pd)[:300]}")
+            if time.time() > deadline:
+                raise RuntimeError(f"Vid Kraken job timed out at status {status}")
+            time.sleep(_YOUTUBE_MP41_POLL_INTERVAL)
+    sanitized_title = sanitize_filename(title)
+    final_output = os.path.join(output_dir, f"{sanitized_title}.mp4")
+    if os.path.exists(final_output):
+        os.remove(final_output)
+    _stream_download(download_url, final_output)
+    print(f"✅ Video downloaded in {time.time() - t0:.2f}s: {final_output}", flush=True)
+    return final_output, sanitized_title
+
+
 def _download_youtube_video_impl(url, output_dir="."):
+    vk_key = os.environ.get("VIDKRAKEN_API_KEY")
+    if vk_key:
+        return _download_via_vidkraken(url, output_dir, vk_key)
     print("📥 Downloading video via RapidAPI (youtube-mp41)...", flush=True)
     step_start_time = time.time()
 
