@@ -5,7 +5,7 @@
 Versão adaptada do projeto de código aberto **[OpenShorts](https://github.com/mutonby/openshorts)**, uma plataforma auto-hospedável de vídeo com IA que reúne três ferramentas: **gerador de cortes** (vídeos longos → Shorts 9:16), **AI Shorts** (vídeos de marketing UGC com atores gerados por IA) e **YouTube Studio** (miniaturas, títulos e descrições). Roda com Docker, sem marca d'água.
 
 > **Adaptações desta versão:**
-> - aceita **URL do YouTube** (download via API do RapidAPI, `RAPIDAPI_KEY`) além de upload local;
+> - aceita **URL do YouTube** (download via Vid Kraken, `VIDKRAKEN_API_KEY`, ou RapidAPI, `RAPIDAPI_KEY`) além de upload local;
 > - **cadastro e login** com SQLite e sessão em cookie (`auth.py`);
 > - **editor de clipes** (`/api/edit`), legendas, ganchos, tradução e efeitos por endpoints próprios;
 > - a análise de momentos virais usa o **Google Gemini**, e a publicação via Upload-Post é opcional.
@@ -43,7 +43,8 @@ cp .env.example .env        # RAPIDAPI_KEY e, opcionalmente, S3
 
 | Variável (servidor) | Uso |
 |---|---|
-| `RAPIDAPI_KEY` | Download de vídeos do YouTube (obrigatória) |
+| `VIDKRAKEN_API_KEY` | Download de vídeos do YouTube via Vid Kraken (usado quando definido) |
+| `RAPIDAPI_KEY` | Download via RapidAPI (alternativa padrão) |
 | `AUTH_DB_PATH` | Caminho do banco SQLite de usuários (padrão `data/users.db`) |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PUBLIC_BUCKET` | Backup e galeria em S3 (opcional) |
 | `MAX_CONCURRENT_JOBS` | Limite de tarefas simultâneas (padrão 5) |
