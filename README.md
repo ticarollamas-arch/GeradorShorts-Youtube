@@ -2,6 +2,10 @@
 
 # Gerador de Shorts para YouTube — plataforma de vídeos curtos com IA
 
+<!-- vercel-demo:start -->
+<p align="center"><a href="https://geradorshorts-youtube.vercel.app"><img src="https://img.shields.io/badge/Abrir_o_site-geradorshorts--youtube.vercel.app-22D3EE?logo=vercel&logoColor=white&labelColor=0B1220" alt="Abrir o site geradorshorts-youtube.vercel.app"></a></p>
+<!-- vercel-demo:end -->
+
 Versão adaptada do projeto de código aberto **[OpenShorts](https://github.com/mutonby/openshorts)**, uma plataforma auto-hospedável de vídeo com IA que reúne três ferramentas: **gerador de cortes** (vídeos longos → Shorts 9:16), **AI Shorts** (vídeos de marketing UGC com atores gerados por IA) e **YouTube Studio** (miniaturas, títulos e descrições). Roda com Docker, sem marca d'água.
 
 > **Adaptações desta versão:**
